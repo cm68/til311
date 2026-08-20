@@ -54,24 +54,29 @@ CLB inputs are PPS-remappable, so A–D can sit on any four pins.
 
 ## Reading the latched nibble
 
-The CPU does **not** read the data pins — it reads the latched value. The
-four `Q`s appear as CLB outputs; the CLB's output register is readable by the
-CPU directly (no GPIO consumed), so the ISR does a single register read of the
-four latched bits. (The exact register — a CLBOUT/software-read register — is
-in the full datasheet's CLB section; this is the one thing to confirm against
-DS40002486 rather than the product brief.)
+The CPU does **not** read the data pins — it reads the latched value. The four
+`Q`s are routed to the CLB's software output net, and the CPU reads them from
+the low byte of the software-window register:
+
+    nibble = CLBSWINL & 0x0F;
+
+No GPIO consumed. `CLBSWINL` is the real symbol — the 32-bit software-window
+register `CLBSWINL/M/H/U`, where writing injects a software input and reading
+returns the software output.
 
 ## Getting the CPU's attention
 
-The rising edge of the strobe must wake the CPU. Simplest is the **IOC**
-(interrupt-on-change) on the strobe pin itself — the CLB doesn't need to
-generate the interrupt. On the edge the CPU:
+The CLB has four interrupt outputs, `CLB1I0..3` — one per logic group — flagged
+and enabled via `PIR7bits.CLB1IFn` / `PIE7bits.CLB1IEn`. Wire the latch capture
+(the strobe edge) to `CLB1I0` in the schematic and enable it; the ISR then:
 
-1. reads the four latched bits (CLB output register),
-2. looks up `font[nibble]`,
-3. writes the 11 segment pins.
+1. clears `PIR7bits.CLB1IF0`,
+2. reads `CLBSWINL & 0x0F`,
+3. looks up `font[nibble]`, writes the 11 segment pins.
 
 There is no timing pressure in the ISR — the CLB has already frozen the data.
+(The strobe pin's IOC would also work and skips the schematic wiring, at the
+cost of a separate IOC configuration.)
 
 ## Simpler alternative: edge-triggered D-FFs
 
@@ -89,7 +94,20 @@ of the fabric is free — e.g. a spare BLE could gate the segment drive off the
 blanking input for hardware PWM dimming, and the 3-bit counter is available
 if a multiplexed drive were ever wanted.
 
-## Register values
+## Register names
+
+Confirmed from the part's MCC-generated CLB driver (Microchip's own, generated
+from the datasheet):
+
+| register | role |
+|---|---|
+| `CLBCON` | control — `CLBEN` enable, `BUSY` bitstream load |
+| `CLBCLK` | clock source select |
+| `CLBPPSCON1..4` | output enable select `OESEL0..7` (PPS to pins) |
+| `CLBSWINL/M/H/U` | 32-bit software window — write input, read output |
+| `PIR7` / `PIE7` | `CLB1IF0..3` flags / `CLB1IE0..3` enables |
+
+Global enables are `INTCONbits.GIE` / `INTCONbits.PEIE`.
 
 The CLB is schematically programmed in **MCC's CLB synthesizer** (draw the four
 latches, wire the strobe as the mux select and HFINTOSC as the clock), and MCC

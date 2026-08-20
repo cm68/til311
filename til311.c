@@ -3,27 +3,26 @@
  *
  * The CLB is configured (in MCC) as four transparent latches: data A-D on
  * CLBIN0-3, the strobe as the latch enable, HFINTOSC as the free-running
- * clock, and the four latched bits on CLBOUT0-3.  This file is everything the
- * CPU does: on the strobe's edge it reads the frozen nibble and decodes it to
- * the 11 segments.
+ * clock, and the four latched bits on the software output net.  On the
+ * strobe's edge the CLB also drives its interrupt (CLB1I0), which wakes the
+ * CPU; the CPU reads the frozen nibble and decodes it to the 11 segments.
  *
- * This is a sketch — the register and vector names below follow the usual
- * PIC16F1xxx conventions and must be matched to this part's header (the CLB
- * output register especially: see DS40002486).
+ * Register names below come from Microchip's own MCC-generated CLB driver for
+ * this part, so CLBCON/CLBCLK/CLBPPSCON/CLBSWIN/PIR7/PIE7 are the real
+ * symbols; the interrupt vector (vectored controller) is the one thing left
+ * to match against xc.h.
  */
 
 #include <xc.h>
 #include "font.h"
 
 /* ---- CLB latch ---- */
-/* CLBOUT0..3 hold latched A..D (nibble = D<<3 | C<<2 | B<<1 | A).
- * The exact read register is the one thing to confirm against the CLB
- * chapter of DS40002486. */
-#define CLB_NIBBLE   CLBOUT          /* placeholder */
-
+/* The four latched bits (A-D, nibble = D<<3 | C<<2 | B<<1 | A) are read from
+ * the CLB software interface register, low byte.  The CLB design must route
+ * the latch outputs to the software output net (done in the MCC schematic). */
 static uint8_t clb_read_nibble(void)
 {
-    return (uint8_t)(CLB_NIBBLE & 0x0F);
+    return (uint8_t)(CLBSWINL & 0x0F);
 }
 
 /* ---- display ---- */
@@ -51,8 +50,7 @@ static void display(uint8_t nibble)
     current = nibble & 0x0F;
 }
 
-/* Blanking is active-high and does not disturb the latch, so unblanking
- * restores the digit that is still stored. */
+/* Blanking is active-high and does not disturb the latch. */
 static void blank(uint8_t on)
 {
     if (on) {
@@ -64,21 +62,15 @@ static void blank(uint8_t on)
     }
 }
 
-/* ---- interrupts ---- */
-/* One ISR covers both the strobe and the blanking input.  If the CLB is set
- * up to generate the interrupt instead of (or in addition to) the strobe's
- * IOC, the body is identical: read the latch, decode, display. */
+/* ---- interrupt ---- */
+/* The CLB raises CLB1I0 when the latch captures; the handler reads the frozen
+ * nibble and updates the segments.  (Blanking can ride a second CLB interrupt,
+ * CLB1I1, or the blank pin's IOC — left for the schematic.) */
 void __interrupt() isr(void)
 {
-    /* Strobe (RC0) rising edge: the CLB has frozen the bus. */
-    if (IOCCF & 0x01) {
-        IOCCF &= ~0x01;
+    if (PIR7bits.CLB1IF0) {
+        PIR7bits.CLB1IF0 = 0;
         display(clb_read_nibble());
-    }
-    /* Blank (RC1) both edges: high blanks, low restores. */
-    if (IOCCF & 0x02) {
-        IOCCF &= ~0x02;
-        blank((uint8_t)RC1);
     }
 }
 
@@ -98,16 +90,13 @@ void main(void)
     LATB = 0;
     LATC = 0;
 
-    /* Interrupt-on-change: strobe on the rising edge only (that is the latch
-     * point), blank on both edges (so PWM dimming is followed). */
-    IOCCP = 0x03;     /* positive edge on RC0 and RC1 */
-    IOCCN = 0x02;     /* negative edge on RC1 only */
-    IOCCF = 0;        /* clear any stale flags */
+    /* CLB latch interrupt (wired to the strobe edge in the MCC schematic). */
+    PIR7bits.CLB1IF0 = 0;
+    PIE7bits.CLB1IE0 = 1;
 
-    /* Enable the IOC interrupt and the global enables. */
-    IOCIE = 1;
-    PEIE = 1;
-    GIE = 1;
+    /* Global enables. */
+    INTCONbits.PEIE = 1;
+    INTCONbits.GIE = 1;
 
     display(0);       /* power-up shows 0 until the first strobe */
 
