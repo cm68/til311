@@ -1,0 +1,6 @@
+# KiCad generated files
+*.rpt
+*-backups/
+fp-info-cache
+*.bak
+*.kicad_prl
