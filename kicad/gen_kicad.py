@@ -96,8 +96,8 @@ def emit_symbol(libname, sname):
 # components: ref, symbol, x, y, [ (pin_number, net) ]
 COMP = []
 
-# PIC U1
-pic = ("U1", "PIC16F13145", 0, 0)
+# PIC U1 (page origin is top-left, y grows downward; keep everything on-sheet)
+pic = ("U1", "PIC16F13145", 120.0, 100.0)
 pic_nets = {1:"+5V", 2:"SEG_g", 3:"SEG_f", 4:"nRST", 5:"SEG_c", 6:"SEG_b",
             7:"DATA_B", 8:"SEG_aR", 9:"SEG_dR", 10:"SEG_i", 11:"SEG_h",
             12:"DATA_D", 13:"DATA_C", 14:"SEG_aL", 15:"BLANK", 16:"STROBE",
@@ -113,35 +113,35 @@ SEGS = [("aL","SEG_aL"),("aR","SEG_aR"),("b","SEG_b"),("c","SEG_c"),
 for k, (seg, snet) in enumerate(SEGS, start=1):
     col = (k-1) // 6
     row = (k-1) % 6
-    rx = 40.0 + col * 20.0
-    lx = 55.0 + col * 20.0
-    ry = -row * 7.62
+    rx = 175.0 + col * 45.0
+    lx = 200.0 + col * 45.0
+    ry = 50.0 + row * 7.62
     rref = f"R{k}"; lref = f"D{k}"
     COMP.append((rref, "R", rx, ry, {1: snet, 2: f"LED_{seg}"}))
     COMP.append((lref, "LED", lx, ry, {2: f"LED_{seg}", 1: "GND"}))
 
 # 2 DP LEDs: anode -> +5V, cathode -> DP_L / DP_R
-COMP.append(("D12", "LED", 75.0, 0, {2: "+5V", 1: "DP_L"}))
-COMP.append(("D13", "LED", 75.0, -7.62, {2: "+5V", 1: "DP_R"}))
+COMP.append(("D12", "LED", 200.0, 130.0, {2: "+5V", 1: "DP_L"}))
+COMP.append(("D13", "LED", 220.0, 130.0, {2: "+5V", 1: "DP_R"}))
 
 # decoupling caps + MCLR pull-up
-COMP.append(("C1", "C", 8.0, 20.0, {1: "+5V", 2: "GND"}))
-COMP.append(("C2", "C", 8.0, 12.0, {1: "+5V", 2: "GND"}))
-COMP.append(("R12", "R", -8.0, -26.0, {1: "+5V", 2: "nRST"}))
+COMP.append(("C1", "C", 135.0, 130.0, {1: "+5V", 2: "GND"}))
+COMP.append(("C2", "C", 135.0, 145.0, {1: "+5V", 2: "GND"}))
+COMP.append(("R12", "R", 100.0, 55.0, {1: "+5V", 2: "nRST"}))
 
 # ICSP header J1 (1x5): VPP, VDD, GND, DAT(RA0=SEG_e), CLK(RA1=SEG_dL)
-COMP.append(("J1", "CONN_1x05", -30.0, 10.0,
+COMP.append(("J1", "CONN_1x05", 40.0, 50.0,
              {1:"nRST", 2:"+5V", 3:"GND", 4:"SEG_e", 5:"SEG_dL"}))
 
 # Interface header J2 (2x7, TIL311 pinout)
-COMP.append(("J2", "CONN_2x07", -30.0, -10.0,
+COMP.append(("J2", "CONN_2x07", 40.0, 105.0,
              {1:"+5V", 2:"DATA_B", 3:"DATA_A", 4:"DP_L", 5:"STROBE", 6:"NC",
               7:"GND", 8:"BLANK", 9:"NC", 10:"DP_R", 11:"NC", 12:"DATA_D",
               13:"DATA_C", 14:"+5V"}))
 
 # power flags (mark the externally-driven +5V and GND nets)
-COMP.append(("FL1", "PWR_FLAG", 8.0, 24.0, {1: "+5V"}))
-COMP.append(("FL2", "PWR_FLAG", 8.0, -28.0, {1: "GND"}))
+COMP.append(("FL1", "PWR_FLAG", 135.0, 165.0, {1: "+5V"}))
+COMP.append(("FL2", "PWR_FLAG", 135.0, 35.0, {1: "GND"}))
 
 # ---------------------------------------------------------------------------
 # Emit schematic
