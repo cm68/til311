@@ -6,8 +6,10 @@ static 0–F digit out. The TIL311 is becoming scarce; this replaces it with a
 PIC16F13145, whose on-chip Configurable Logic Block (CLB) captures the data
 bus in hard real time and leaves the CPU to do the 4-bit → segment decode.
 
-The digit is **11 segments + 2 decimal points** — thirteen surface-mount LEDs
-on the board front, the PIC and support parts on the back, driven statically.
+The digit is **11 segments + 2 decimal points** — thirteen surface-mount LEDs,
+driven statically. Everything — LEDs, PIC, passives — is on one side of the
+board (single-sided hotplate assembly), with the PIC tucked under the LED array
+exactly like the original's hidden chip.
 
 ## Sources
 
@@ -42,7 +44,7 @@ Electrical / timing:
 - Decimal points: anodes to LED V+, cathodes to pins 4/10, **no internal limiting**
   (external resistor required) — not decoded, latched, or blanked.
 
-### PIC16F13145 (20-pin PDIP/SOIC/SSOP/VQFN)
+### PIC16F13145 (20-pin; the VQFN-20 3×3, ordering code `-I/REB`)
 
 - 1.8–5.5 V operation → **runs at 5 V, directly TTL-compatible.**
 - 17 I/O + MCLR (input-only). 14 KB flash, 1 KB RAM, 32 MHz.
@@ -157,22 +159,24 @@ Decode table (segments lit):
 
 ## Form factor
 
-A two-sided boardlet, echoing the original's own packaging:
+Single-sided, like the original: the TIL311 hides its TTL chip under the LED
+array, and this does the same.
 
-- **Front** — the thirteen SMD LEDs (11 segments + 2 decimal points) in the
-  segment pattern, facing the viewer. Nothing else on this side.
-- **Back** — the PIC16F13145, the 11 segment series resistors, decoupling, and
-  the TIL311's 11 interface signals (A/B/C/D, strobe, blank, 2 DP, 5 V, GND)
-  on a row of through-hole pads or a header.
-- **ICSP** — a 5-pin programming header on the back, used only at programming
-  time.
+- **One side only.** All parts — the VQFN PIC, the 13 SMD LEDs, the 11 segment
+  resistors, decoupling, the MCLR pull-up — sit on the top face, so the board
+  is a one-pass hotplate reflow with nothing on the back.
+- **The PIC sits under the LED array.** The 3 × 3 mm VQFN is small enough to
+  hide behind the digit, so the LEDs surround and cover it — the chip is
+  invisible from the front, exactly as on a TIL311.
+- **Interface on the edge.** The 11 TIL311 signals (A/B/C/D, strobe, blank,
+  2 DP, 5 V, GND) come off as half-moon **castellations** or a row of
+  **through-hole pins**, either of which lets the boardlet sit where a TIL311
+  was.
+- **ICSP** pads on the top face, used once at programming time.
 
-The boardlet drops into a TIL311 socket electrically (same signals, same
-levels). The 20-pin PIC needs a little more area than the 14-pin original, so
-the board is roughly the TIL311 footprint or a touch longer; the DP resistors
-stay off-board, exactly as they are with a real TIL311.
+The DP resistors stay off-board, exactly as they are with a real TIL311.
 
-## Pin assignment (20-pin PDIP)
+## Pin assignment (20-pin VQFN — pin names/numbers identical to the PDIP)
 
 | PIC pin | Name | Connects to |
 |---|---|---|
@@ -204,7 +208,7 @@ segment-to-pin assignment is arbitrary and can be permuted for the PCB.
 
 ## BOM (one digit)
 
-- 1 × PIC16F13145-I/P (20-pin PDIP)
+- 1 × PIC16F13145-I/REB (20-pin VQFN, 3 × 3 × 0.9 mm, exposed pad to VSS)
 - 11 × SMD red LEDs (segments) + 2 × SMD red LEDs (decimal points)
 - 11 × segment series resistors (~560–680 Ω), 2 × DP series resistors (external)
 - 1 × 0.1 µF + 1 × 10 µF decoupling on VDD; 10 kΩ on MCLR
@@ -225,7 +229,8 @@ segment-to-pin assignment is arbitrary and can be permuted for the PCB.
 - **The 11-segment glyph geometry** — the exact diagonal placement and bar-split
   point. The table above is a starting point; eyeball B and D on the real board
   and tune the diagonal position and direction until they read cleanly.
-- **Interface style** — how the 11 signals come off the back: a single header,
-  two 7+7 DIP-format rows, or castellated edge pads.
-- **Drop-in vs boardlet** — the 20-pin part can't be a 14-pin drop-in; confirm
-  the boardlet form factor is acceptable for the target equipment.
+- **Confirm the VQFN size.** The product brief lists the 20-pin VQFN as 4 × 4 mm,
+  but the `-I/REB` distributor entry says 3 × 3 mm — verify the "Packaging
+  Information" section of the full datasheet before ordering.
+- **Castellations vs through-hole** — pick one for the edge interface when the
+  target footprint is known.
