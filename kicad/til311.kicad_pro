@@ -1,0 +1,14 @@
+{
+  "board": {},
+  "meta": {
+    "filename": "til311.kicad_pro",
+    "version": 1
+  },
+  "net_settings": {
+    "classes": [],
+    "meta": {"version": 3},
+    "nets": []
+  },
+  "pcbnew": {"last_paths": {}},
+  "schematic": {"legacy_lib_dir": "", "legacy_lib_list": []}
+}
